@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Package VSIX",
+      "type": "shell",
+      "command": "npx --yes @vscode/vsce package",
+      "problemMatcher": [],
+      "group": "build",
+      "detail": "Build jezzball-<version>.vsix in the project root"
+    }
+  ]
+}

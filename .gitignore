@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Packaged extension artifacts
+*.vsix
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS cruft
+.DS_Store
+Thumbs.db
+.vscode-test/
+*.swp

@@ -1,0 +1,15 @@
+# Files excluded from the packaged .vsix (keeps the extension small).
+# CHANGELOG.md and LICENSE are intentionally NOT excluded so the
+# Marketplace shows them.
+.github/**
+.vscode/**
+.gitignore
+.vscodeignore
+CONTRIBUTING.md
+node_modules/**
+**/*.map
+**/.DS_Store
+*.vsix
+
+# Ship only the .png icon; keep the .svg source out of the package.
+media/jezzball-icon.svg

@@ -1,0 +1,70 @@
+{
+  "name": "jezzball",
+  "displayName": "JezzBall",
+  "description": "Play the classic Windows 95 game JezzBall in a side bar inside VS Code.",
+  "version": "1.0.0",
+  "publisher": "local",
+  "license": "MIT",
+  "icon": "media/jezzball-icon.png",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "game",
+    "jezzball",
+    "arcade",
+    "retro",
+    "windows 95",
+    "break",
+    "fun"
+  ],
+  "galleryBanner": {
+    "color": "#008080",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/jezzball-vscode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/jezzball-vscode/issues"
+  },
+  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/jezzball-vscode#readme",
+  "main": "./extension.js",
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "jezzball.gameView",
+          "name": "JezzBall"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "jezzball.play",
+        "title": "Play",
+        "category": "JezzBall"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "jezzball.play",
+        "key": "ctrl+alt+j",
+        "mac": "cmd+alt+j"
+      }
+    ]
+  },
+  "scripts": {
+    "package": "npx --yes @vscode/vsce package",
+    "publish": "npx --yes @vscode/vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.75.0",
+    "@vscode/vsce": "^3.2.1"
+  }
+}

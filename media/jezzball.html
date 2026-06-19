@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JezzBall</title>
+<style>
+  :root {
+    --silver:#c0c0c0;
+    --silver-lt:#dfdfdf;
+    --silver-dk:#808080;
+    --silver-dkr:#404040;
+  }
+  * { box-sizing:border-box; }
+  html, body {
+    margin:0; padding:0;
+    min-height:100%;
+    background:#008080;            /* Win95 desktop teal */
+    font-family:Tahoma, Geneva, "MS Sans Serif", sans-serif;
+    color:#000;
+    -webkit-font-smoothing:none;
+  }
+  body {
+    display:flex; flex-direction:column;
+    align-items:flex-start;
+    padding:8px;
+    overflow-x:hidden;
+  }
+
+  /* ---- 3D chrome helpers (Windows-95 style) ---- */
+  .raised {
+    background:var(--silver);
+    border:2px solid;
+    border-color:#ffffff var(--silver-dk) var(--silver-dk) #ffffff;
+    box-shadow: inset 1px 1px 0 var(--silver-lt), inset -1px -1px 0 var(--silver-dkr);
+  }
+  .sunken {
+    border:2px solid;
+    border-color:var(--silver-dk) #ffffff #ffffff var(--silver-dk);
+    box-shadow: inset 1px 1px 0 var(--silver-dkr), inset -1px -1px 0 var(--silver-lt);
+  }
+
+  .win { padding:3px; }
+
+  .titlebar {
+    background:linear-gradient(90deg,#000080,#1084d0);
+    color:#fff; padding:3px 3px 3px 5px;
+    display:flex; align-items:center; gap:6px;
+    user-select:none;
+  }
+  .titlebar .ico {
+    width:14px; height:14px; flex:0 0 auto;
+    background:
+      radial-gradient(circle at 50% 50%, #ff5a4d 0 4px, transparent 5px),
+      #000;
+    border:1px solid #000;
+  }
+  .titlebar .name { font-weight:bold; font-size:12px; letter-spacing:.3px; }
+  .titlebar .sp { flex:1 1 auto; }
+  .tbtn {
+    width:16px; height:14px;
+    background:var(--silver);
+    border:1px solid;
+    border-color:#ffffff var(--silver-dkr) var(--silver-dkr) #ffffff;
+    box-shadow: inset 1px 1px 0 var(--silver-lt);
+    font:bold 9px/12px Tahoma; text-align:center; color:#000;
+    cursor:default;
+  }
+
+  .toolbar {
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    padding:6px; margin-top:3px;
+  }
+  .stat { display:flex; align-items:center; gap:5px; }
+  .stat .lbl { font:bold 11px Tahoma; }
+  .readout {
+    background:#06120a;
+    padding:3px 8px;
+    font:bold 13px/1 "Consolas","Lucida Console",monospace;
+    letter-spacing:1px; text-align:right; min-width:30px;
+  }
+  .readout.green { color:#39ff5a; text-shadow:0 0 4px rgba(57,255,90,.5); }
+  .readout.amber { color:#ffc83a; text-shadow:0 0 4px rgba(255,200,58,.5); }
+  .readout.cyan  { color:#4ad8ff; text-shadow:0 0 4px rgba(74,216,255,.5); }
+  .readout.low   { color:#ff5a4d; text-shadow:0 0 5px rgba(255,90,77,.6); }
+
+  .spacer { flex:1 1 auto; }
+
+  .btn {
+    background:var(--silver);
+    border:2px solid;
+    border-color:#ffffff var(--silver-dk) var(--silver-dk) #ffffff;
+    box-shadow: inset 1px 1px 0 var(--silver-lt), inset -1px -1px 0 var(--silver-dkr);
+    padding:5px 11px; font:bold 12px Tahoma; color:#000; cursor:pointer;
+  }
+  .btn:focus-visible { outline:1px dotted #000; outline-offset:-4px; }
+  .btn:active {
+    border-color:var(--silver-dk) #ffffff #ffffff var(--silver-dk);
+    box-shadow: inset 1px 1px 0 var(--silver-dkr);
+    padding:6px 10px 4px 12px;
+  }
+
+  .field-wrap {
+    position:relative; margin:0 6px 6px;
+    line-height:0; background:#0b0b16;
+  }
+  canvas { display:block; image-rendering:pixelated; }
+
+  /* message overlay sits on the play field */
+  .overlay {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(10,10,22,.62);
+    text-align:center; line-height:1.35;
+    pointer-events:none;            /* clicks fall through to the canvas underneath */
+    cursor:pointer;
+  }
+  .overlay.hidden { display:none; }
+  .panel {
+    background:var(--silver);
+    border:2px solid;
+    border-color:#ffffff var(--silver-dk) var(--silver-dk) #ffffff;
+    box-shadow: inset 1px 1px 0 var(--silver-lt), inset -1px -1px 0 var(--silver-dkr);
+    padding:18px 22px; max-width:80%;
+  }
+  .panel h1 { margin:0 0 6px; font-size:22px; letter-spacing:.5px; }
+  .panel h1 .sub { color:#000080; }
+  .panel p { margin:6px 0; font-size:12px; }
+  .panel .big { font-size:16px; font-weight:bold; }
+  .panel .go { color:#a80000; }
+  .panel .blink { animation:blink 1s steps(2,start) infinite; font-weight:bold; }
+  @keyframes blink { 50% { opacity:0; } }
+
+  .hint {
+    margin-top:8px; max-width:600px;
+    font-size:11px; color:#003b3b; text-align:center; line-height:1.5;
+  }
+  .hint b { color:#001f1f; }
+  kbd {
+    display:inline-block; padding:1px 5px; margin:0 1px;
+    background:var(--silver); color:#000;
+    border:2px solid; border-color:#ffffff var(--silver-dk) var(--silver-dk) #ffffff;
+    box-shadow: inset 1px 1px 0 var(--silver-lt);
+    font:bold 10px/1.4 Tahoma;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .panel .blink { animation:none; }
+  }
+</style>
+</head>
+<body>
+  <div class="win raised">
+    <div class="titlebar">
+      <span class="ico"></span>
+      <span class="name">JezzBall</span>
+      <span class="sp"></span>
+      <span class="tbtn">_</span>
+      <span class="tbtn">□</span>
+      <span class="tbtn">×</span>
+    </div>
+
+    <div class="toolbar raised">
+      <div class="stat"><span class="lbl">Level</span><span id="rLevel" class="readout green">1</span></div>
+      <div class="stat"><span class="lbl">Lives</span><span id="rLives" class="readout amber">3</span></div>
+      <div class="stat"><span class="lbl">Filled</span><span id="rPct" class="readout cyan">0%</span></div>
+      <div class="stat"><span class="lbl">Goal</span><span class="readout cyan">75%</span></div>
+      <div class="spacer"></div>
+      <button class="btn" id="btnDir">Walls: &#8597; Vertical</button>
+      <button class="btn" id="btnPause">Pause</button>
+      <button class="btn" id="btnSound">Sound: On</button>
+      <button class="btn" id="btnNew">New Game</button>
+    </div>
+
+    <div class="field-wrap sunken">
+      <canvas id="cv"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="panel" id="panel"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="hint">
+    <b>Left-click</b> to grow a wall in both directions. Seal off empty space and any region
+    with no ball gets captured. Capture <b>75%</b> to clear the level.
+    A ball touching a <b>growing</b> wall costs a life.<br>
+    <kbd>Right-click</kbd> or <kbd>Space</kbd> flip wall direction &nbsp;&middot;&nbsp;
+    <kbd>P</kbd> pause &nbsp;&middot;&nbsp; <kbd>M</kbd> mute
+  </p>
+
+<script>
+// ----------------------------------------------------------------------------
+// Config
+// ----------------------------------------------------------------------------
+const COLS = 40, ROWS = 28, CELL = 15;
+const W = COLS * CELL, H = ROWS * CELL;
+const BALL_R = 6;
+const BALL_V = 150;          // velocity component, px/sec (balls travel at 45 deg)
+const WALL_CPS = 26;         // wall growth speed, cells/sec
+const TARGET = 0.75;         // fraction of field needed to win
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Cell values
+const EMPTY = 0, SOLID = 1, GROW = 2;
+
+// ----------------------------------------------------------------------------
+// DOM + canvas
+// ----------------------------------------------------------------------------
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+cv.width = W * dpr; cv.height = H * dpr;
+cv.style.width = W + 'px'; cv.style.height = H + 'px';
+ctx.scale(dpr, dpr);
+
+const rLevel  = document.getElementById('rLevel');
+const rLives  = document.getElementById('rLives');
+const rPct    = document.getElementById('rPct');
+const overlay = document.getElementById('overlay');
+const panel   = document.getElementById('panel');
+const btnDir  = document.getElementById('btnDir');
+const btnPause= document.getElementById('btnPause');
+const btnSound= document.getElementById('btnSound');
+const btnNew  = document.getElementById('btnNew');
+
+// ----------------------------------------------------------------------------
+// Sound (tiny WebAudio blips, unlocked on first click)
+// ----------------------------------------------------------------------------
+let actx = null, muted = false;
+function audio() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (actx && actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function beep(freq, dur, type = 'square', vol = 0.05) {
+  if (muted) return;
+  const ac = audio(); if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.value = freq;
+  o.connect(g); g.connect(ac.destination);
+  const t = ac.currentTime;
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.start(t); o.stop(t + dur);
+}
+const sBuild   = () => beep(200, 0.06, 'square', 0.035);
+const sLock    = () => { beep(640, 0.05, 'square', 0.05); setTimeout(() => beep(880, 0.06, 'square', 0.05), 45); };
+const sCapture = () => { beep(520, 0.05, 'triangle', 0.05); setTimeout(() => beep(800, 0.07, 'triangle', 0.05), 55); };
+const sHit     = () => beep(150, 0.28, 'sawtooth', 0.08);
+const sLevel   = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.13, 'square', 0.05), i * 95));
+const sOver    = () => [392, 311, 247, 185].forEach((f, i) => setTimeout(() => beep(f, 0.22, 'sawtooth', 0.07), i * 160));
+
+// ----------------------------------------------------------------------------
+// Game state
+// ----------------------------------------------------------------------------
+let grid;                       // ROWS x COLS of EMPTY / SOLID / GROW
+let balls = [];
+let building = null;            // { heads:[{col,row,dc,dr,growing}, ...] }
+let orientation = 'v';          // 'v' = vertical walls, 'h' = horizontal walls
+let level, lives, pct;
+let state = 'start';            // start | playing | paused | levelclear | gameover
+let mouse = { col: -1, row: -1, inside: false };
+let wallAcc = 0, lastT = 0, flash = 0, tNow = 0;
+
+// ----------------------------------------------------------------------------
+// Setup helpers
+// ----------------------------------------------------------------------------
+function makeGrid() {
+  grid = Array.from({ length: ROWS }, () => new Array(COLS).fill(EMPTY));
+}
+
+function placeBalls(n) {
+  balls = [];
+  let guard = 0;
+  while (balls.length < n && guard++ < 1000) {
+    const x = 2 * CELL + Math.random() * (W - 4 * CELL);
+    const y = 2 * CELL + Math.random() * (H - 4 * CELL);
+    if (balls.some(b => Math.hypot(b.x - x, b.y - y) < 5 * CELL)) continue;
+    const sx = Math.random() < 0.5 ? -1 : 1;
+    const sy = Math.random() < 0.5 ? -1 : 1;
+    balls.push({ x, y, vx: sx * BALL_V, vy: sy * BALL_V, hue: (balls.length * 47) % 360 });
+  }
+}
+
+function startLevel() {
+  makeGrid();
+  placeBalls(level + 1);        // level 1 -> 2 balls, and up
+  building = null;
+  wallAcc = 0; flash = 0;
+  computePct();
+}
+
+function newGame() {
+  level = 1; lives = 3;
+  startLevel();
+  state = 'playing';
+  lastT = 0;
+  hideOverlay();
+}
+
+// ----------------------------------------------------------------------------
+// Collision helpers
+// ----------------------------------------------------------------------------
+// True if the pixel rect touches any cell of `val` (border counts as SOLID).
+function rectHits(left, top, right, bottom, val) {
+  const c0 = Math.floor(left / CELL),  c1 = Math.floor((right  - 1e-6) / CELL);
+  const r0 = Math.floor(top / CELL),   r1 = Math.floor((bottom - 1e-6) / CELL);
+  for (let r = r0; r <= r1; r++) {
+    for (let c = c0; c <= c1; c++) {
+      if (c < 0 || c >= COLS || r < 0 || r >= ROWS) { if (val === SOLID) return true; else continue; }
+      if (grid[r][c] === val) return true;
+    }
+  }
+  return false;
+}
+const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+
+// ----------------------------------------------------------------------------
+// Updates
+// ----------------------------------------------------------------------------
+function moveBalls(dt) {
+  for (const b of balls) {
+    let nx = b.x + b.vx * dt;
+    if (rectHits(nx - BALL_R, b.y - BALL_R, nx + BALL_R, b.y + BALL_R, SOLID)) b.vx = -b.vx;
+    else b.x = nx;
+
+    let ny = b.y + b.vy * dt;
+    if (rectHits(b.x - BALL_R, ny - BALL_R, b.x + BALL_R, ny + BALL_R, SOLID)) b.vy = -b.vy;
+    else b.y = ny;
+
+    b.x = clamp(b.x, BALL_R, W - BALL_R);
+    b.y = clamp(b.y, BALL_R, H - BALL_R);
+  }
+}
+
+function stepHeads() {
+  for (const h of building.heads) {
+    if (!h.growing) continue;
+    const nc = h.col + h.dc, nr = h.row + h.dr;
+    if (nc < 0 || nc >= COLS || nr < 0 || nr >= ROWS) { h.growing = false; continue; } // hit border
+    if (grid[nr][nc] === SOLID) { h.growing = false; continue; }                        // hit wall
+    grid[nr][nc] = GROW;
+    h.col = nc; h.row = nr;
+  }
+  if (!building.heads.some(h => h.growing)) completeWall();
+}
+
+function stepWall(dt) {
+  if (!building) return;
+  wallAcc += dt;
+  const interval = 1 / WALL_CPS;
+  let guard = 0;
+  while (building && wallAcc >= interval && building.heads.some(h => h.growing)) {
+    wallAcc -= interval;
+    stepHeads();
+    if (++guard > 300) break;
+  }
+}
+
+function completeWall() {
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (grid[r][c] === GROW) grid[r][c] = SOLID;
+  building = null;
+  sLock();
+  capture();
+  computePct();
+  if (pct >= TARGET) levelClear();
+}
+
+function loseLife() {
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (grid[r][c] === GROW) grid[r][c] = EMPTY;   // revert the unfinished wall
+  building = null;
+  lives--;
+  flash = 0.35;
+  sHit();
+  if (lives <= 0) gameOver();
+}
+
+function checkKill() {
+  if (!building) return;
+  for (const b of balls) {
+    if (rectHits(b.x - BALL_R, b.y - BALL_R, b.x + BALL_R, b.y + BALL_R, GROW)) { loseLife(); return; }
+  }
+}
+
+// Flood-fill empty regions; any region with no ball becomes captured (SOLID).
+function capture() {
+  const seen = Array.from({ length: ROWS }, () => new Array(COLS).fill(false));
+  const ballCells = new Set(balls.map(b => `${Math.floor(b.y / CELL)},${Math.floor(b.x / CELL)}`));
+  let captured = false;
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r][c] !== EMPTY || seen[r][c]) continue;
+      const region = [];
+      const stack = [[r, c]];
+      seen[r][c] = true;
+      let hasBall = false;
+      while (stack.length) {
+        const [rr, cc] = stack.pop();
+        region.push([rr, cc]);
+        if (ballCells.has(`${rr},${cc}`)) hasBall = true;
+        const nb = [[rr - 1, cc], [rr + 1, cc], [rr, cc - 1], [rr, cc + 1]];
+        for (const [r2, c2] of nb) {
+          if (r2 < 0 || r2 >= ROWS || c2 < 0 || c2 >= COLS) continue;
+          if (seen[r2][c2] || grid[r2][c2] !== EMPTY) continue;
+          seen[r2][c2] = true; stack.push([r2, c2]);
+        }
+      }
+      if (!hasBall) { for (const [rr, cc] of region) grid[rr][cc] = SOLID; captured = true; }
+    }
+  }
+  if (captured) sCapture();
+}
+
+function computePct() {
+  let solid = 0;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (grid[r][c] === SOLID) solid++;
+  pct = solid / (ROWS * COLS);
+}
+
+// ----------------------------------------------------------------------------
+// Wall building from a click
+// ----------------------------------------------------------------------------
+function ballInCell(row, col) {
+  const l = col * CELL, t = row * CELL, r = l + CELL, b = t + CELL;
+  return balls.some(ba =>
+    ba.x + BALL_R > l && ba.x - BALL_R < r && ba.y + BALL_R > t && ba.y - BALL_R < b);
+}
+
+function tryBuild(col, row) {
+  if (building) return;                              // one wall at a time
+  if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+  if (grid[row][col] !== EMPTY) return;              // can't start inside a wall
+  if (ballInCell(row, col)) return;                  // don't start under a ball
+
+  grid[row][col] = GROW;                             // origin cell
+  const dirs = orientation === 'v'
+    ? [[0, -1], [0, 1]]                              // up / down
+    : [[-1, 0], [1, 0]];                             // left / right
+  building = {
+    heads: dirs.map(([dc, dr]) => ({ col, row, dc, dr, growing: true }))
+  };
+  wallAcc = 0;
+  sBuild();
+}
+
+// ----------------------------------------------------------------------------
+// State transitions / overlays
+// ----------------------------------------------------------------------------
+function showOverlay(html) { panel.innerHTML = html; overlay.classList.remove('hidden'); }
+function hideOverlay()     { overlay.classList.add('hidden'); }
+
+function levelClear() {
+  state = 'levelclear';
+  sLevel();
+  showOverlay(
+    `<h1>Level <span class="sub">${level}</span> cleared!</h1>
+     <p class="big">${Math.round(pct * 100)}% captured</p>
+     <p>+1 life bonus &nbsp;&middot;&nbsp; next: ${level + 2} balls</p>
+     <p class="blink">Click to continue &#9654;</p>`);
+}
+
+function gameOver() {
+  state = 'gameover';
+  sOver();
+  showOverlay(
+    `<h1 class="go">Game Over</h1>
+     <p class="big">You reached level ${level}</p>
+     <p class="blink">Click to play again &#9654;</p>`);
+}
+
+function bootStart() {
+  level = 1; lives = 3;
+  startLevel();
+  state = 'start';
+  showOverlay(
+    `<h1>Jezz<span class="sub">Ball</span></h1>
+     <p>Trap the bouncing atoms. Build walls to seal off empty space
+        and capture <b>75%</b> of the field.</p>
+     <p>Mind the growing wall &mdash; a hit costs a life.</p>
+     <p class="blink">Click to start &#9654;</p>`);
+}
+
+// ----------------------------------------------------------------------------
+// Rendering
+// ----------------------------------------------------------------------------
+function draw() {
+  // field background
+  ctx.fillStyle = '#0b0b16';
+  ctx.fillRect(0, 0, W, H);
+
+  // subtle grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let c = 1; c < COLS; c++) { ctx.moveTo(c * CELL + .5, 0); ctx.lineTo(c * CELL + .5, H); }
+  for (let r = 1; r < ROWS; r++) { ctx.moveTo(0, r * CELL + .5); ctx.lineTo(W, r * CELL + .5); }
+  ctx.stroke();
+
+  // captured / solid tiles (beveled tile look)
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r][c] !== SOLID) continue;
+      const x = c * CELL, y = r * CELL;
+      ctx.fillStyle = '#2f5fa8';
+      ctx.fillRect(x, y, CELL, CELL);
+      ctx.fillStyle = 'rgba(140,180,235,0.55)';     // top + left highlight
+      ctx.fillRect(x, y, CELL, 1);
+      ctx.fillRect(x, y, 1, CELL);
+      ctx.fillStyle = 'rgba(15,40,90,0.7)';         // bottom + right shade
+      ctx.fillRect(x, y + CELL - 1, CELL, 1);
+      ctx.fillRect(x + CELL - 1, y, 1, CELL);
+    }
+  }
+
+  // growing (danger) cells — pulsing amber
+  const pulse = reduceMotion ? 0.8 : 0.65 + 0.35 * Math.sin(tNow * 9);
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,170,0,0.9)';
+  ctx.shadowBlur = reduceMotion ? 0 : 6;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r][c] !== GROW) continue;
+      ctx.fillStyle = `rgba(255,${150 + Math.round(60 * pulse)},0,${0.9})`;
+      ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
+    }
+  }
+  ctx.restore();
+
+  // cursor preview line
+  if (state === 'playing' && mouse.inside && !building &&
+      mouse.col >= 0 && mouse.col < COLS && mouse.row >= 0 && mouse.row < ROWS) {
+    ctx.strokeStyle = 'rgba(255,210,90,0.30)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (orientation === 'v') {
+      const x = mouse.col * CELL + CELL / 2;
+      ctx.moveTo(x, 0); ctx.lineTo(x, H);
+    } else {
+      const y = mouse.row * CELL + CELL / 2;
+      ctx.moveTo(0, y); ctx.lineTo(W, y);
+    }
+    ctx.stroke();
+  }
+
+  // balls (glossy marbles)
+  for (const b of balls) {
+    const g = ctx.createRadialGradient(b.x - 2, b.y - 2, 1, b.x, b.y, BALL_R + 1);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.25, `hsl(${b.hue} 90% 70%)`);
+    g.addColorStop(1, `hsl(${b.hue} 85% 38%)`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // damage flash
+  if (flash > 0) {
+    ctx.fillStyle = `rgba(220,30,30,${0.45 * (flash / 0.35)})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+function updateHUD() {
+  rLevel.textContent = level;
+  rLives.textContent = lives;
+  rLives.classList.toggle('low', lives <= 1);
+  rPct.textContent = Math.round(pct * 100) + '%';
+}
+
+// ----------------------------------------------------------------------------
+// Main loop
+// ----------------------------------------------------------------------------
+function loop(t) {
+  if (!lastT) lastT = t;
+  let dt = (t - lastT) / 1000;
+  lastT = t;
+  dt = Math.min(dt, 1 / 30);
+  tNow += dt;
+
+  if (state === 'playing' || state === 'start') moveBalls(dt);
+  if (state === 'playing') { stepWall(dt); checkKill(); }
+  if (flash > 0) flash = Math.max(0, flash - dt);
+
+  draw();
+  updateHUD();
+  requestAnimationFrame(loop);
+}
+
+// ----------------------------------------------------------------------------
+// Input
+// ----------------------------------------------------------------------------
+function cellFromEvent(e) {
+  const rect = cv.getBoundingClientRect();
+  const scaleX = rect.width / W;   // visual size / logical size
+  const scaleY = rect.height / H;
+  const col = Math.floor((e.clientX - rect.left) / scaleX / CELL);
+  const row = Math.floor((e.clientY - rect.top)  / scaleY / CELL);
+  return { col, row };
+}
+
+cv.addEventListener('mousemove', e => {
+  const { col, row } = cellFromEvent(e);
+  mouse.col = col; mouse.row = row; mouse.inside = true;
+});
+cv.addEventListener('mouseleave', () => { mouse.inside = false; });
+
+function advance() {            // move past start / level-clear / game-over screens
+  if (state === 'start')           { state = 'playing'; lastT = 0; hideOverlay(); }
+  else if (state === 'levelclear') { level++; lives++; startLevel(); state = 'playing'; lastT = 0; hideOverlay(); }
+  else if (state === 'gameover')   { newGame(); }
+}
+
+cv.addEventListener('click', e => {
+  audio();                                   // unlock sound on a user gesture
+  if (state === 'paused') return;
+  if (state !== 'playing') { advance(); return; }
+  const { col, row } = cellFromEvent(e);
+  tryBuild(col, row);
+});
+
+cv.addEventListener('contextmenu', e => { e.preventDefault(); toggleDir(); });
+
+function toggleDir() {
+  orientation = orientation === 'v' ? 'h' : 'v';
+  btnDir.innerHTML = orientation === 'v' ? 'Walls: &#8597; Vertical' : 'Walls: &#8596; Horizontal';
+}
+
+function togglePause() {
+  if (state === 'playing') { state = 'paused'; showOverlay('<h1>Paused</h1><p class="blink">Press P to resume</p>'); }
+  else if (state === 'paused') { state = 'playing'; lastT = 0; hideOverlay(); }
+}
+
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k === 'enter' && state !== 'playing' && state !== 'paused') { e.preventDefault(); advance(); return; }
+  if (k === ' ' || k === 'v' || k === 'h' || k === 'r') { e.preventDefault(); toggleDir(); }
+  else if (k === 'p') togglePause();
+  else if (k === 'm') btnSound.click();
+});
+
+btnDir.addEventListener('click', toggleDir);
+btnPause.addEventListener('click', togglePause);
+btnNew.addEventListener('click', () => { audio(); newGame(); });
+btnSound.addEventListener('click', () => {
+  muted = !muted;
+  btnSound.textContent = 'Sound: ' + (muted ? 'Off' : 'On');
+  if (!muted) audio();
+});
+
+// ----------------------------------------------------------------------------
+// Go
+// ----------------------------------------------------------------------------
+bootStart();
+requestAnimationFrame(loop);
+
+// ----------------------------------------------------------------------------
+// Fit game to sidebar width
+// ----------------------------------------------------------------------------
+function fitGame() {
+  const win = document.querySelector('.win');
+  if (!win) return;
+  const available = document.documentElement.clientWidth - 16; // subtract body padding
+  const s = Math.min(1, available / win.scrollWidth);
+  win.style.transform = s < 1 ? `scale(${s})` : '';
+  win.style.transformOrigin = 'top left';
+  // Collapse the dead space left behind by the CSS transform
+  win.style.marginBottom = s < 1 ? `${Math.ceil(win.scrollHeight * (s - 1))}px` : '';
+}
+window.addEventListener('resize', fitGame);
+fitGame();
+</script>
+</body>
+</html>
