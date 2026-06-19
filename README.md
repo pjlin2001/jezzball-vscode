@@ -35,7 +35,7 @@ rendered in a webview, styled to look like the real Win95 original.
 ### From a packaged `.vsix`
 
 1. Download the latest `jezzball-1.0.0.vsix` from the
-   [Releases page](https://github.com/YOUR_GITHUB_USERNAME/jezzball-vscode/releases)
+   [Releases page](https://github.com/pjlin2001/jezzball-vscode/releases)
    (or build it yourself — see below).
 2. In VS Code open the **Extensions** view → `…` menu → **Install from VSIX…** → pick the file.
 3. Run **JezzBall: Play** from the Command Palette, or press <kbd>Ctrl/Cmd</kbd> + <kbd>Alt</kbd> + <kbd>J</kbd>.
@@ -43,7 +43,7 @@ rendered in a webview, styled to look like the real Win95 original.
 ### From source (development)
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/jezzball-vscode.git
+git clone https://github.com/pjlin2001/jezzball-vscode.git
 cd jezzball-vscode
 code .
 ```
@@ -74,22 +74,6 @@ npm run package           # uses npx @vscode/vsce, no global install needed
 The entire game lives in one file: [`media/jezzball.html`](media/jezzball.html).
 Tweak it, then reload the webview (close and re-run **JezzBall: Play**, or reload the
 Extension Development Host window) to see your changes.
-
-## Publishing to the Marketplace
-
-This repo is wired up to publish, but a few one-time steps are needed:
-
-1. Create a publisher at <https://marketplace.visualstudio.com/manage> and set the
-   `"publisher"` field in [`package.json`](package.json) to its ID (currently `local`,
-   which only works for local installs).
-2. Replace every `YOUR_GITHUB_USERNAME` placeholder with your GitHub handle.
-3. Create a **Personal Access Token** (Azure DevOps) and either run
-   `npm run publish` locally or add it as the `VSCE_PAT` secret so the
-   [release workflow](.github/workflows/release.yml) publishes automatically when you
-   push a `v*` tag.
-
-See the official guide:
-<https://code.visualstudio.com/api/working-with-extensions/publishing-extension>.
 
 ## Contributing
 
